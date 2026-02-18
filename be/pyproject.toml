@@ -1,0 +1,13 @@
+[project]
+name = "be"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.129.0",
+    "google-auth>=2.48.0",
+    "requests>=2.32.5",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.fastapi]
+dev_port = 8000

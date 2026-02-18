@@ -1,0 +1,17 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install uv
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files first (better layer caching)
+COPY pyproject.toml uv.lock ./
+
+# Install deps using uv
+RUN uv sync --no-dev
+
+# Copy app code
+COPY main.py .
+
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
