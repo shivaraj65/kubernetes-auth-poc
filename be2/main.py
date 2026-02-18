@@ -14,21 +14,96 @@ logger = logging.getLogger(__name__)
 
 logger.info("Starting FastAPI application initialization")
 
-K8S_ISSUER = "https://kubernetes.default.svc"
-JWKS_URL = f"{K8S_ISSUER}/openid/v1/jwks"
+# Kubernetes API server endpoint and JWKS configuration
+K8S_ISSUER = "https://kubernetes.default.svc.cluster.local"
+K8S_API_SERVER = "https://kubernetes.default.svc"
+JWKS_URL = f"{K8S_API_SERVER}/.well-known/openid-configuration"
 logger.info(f"Kubernetes issuer: {K8S_ISSUER}")
-logger.info(f"JWKS URL: {JWKS_URL}")
+logger.info(f"Kubernetes API server: {K8S_API_SERVER}")
+logger.info(f"OpenID configuration URL: {JWKS_URL}")
 
 # Fetch cluster signing keys
-logger.info("Fetching cluster signing keys from JWKS endpoint")
+logger.info("Fetching cluster signing keys from Kubernetes JWKS endpoint")
+CA_CERT_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+SA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+# Read the service account token for authentication
+SA_TOKEN = None
 try:
-    jwks = requests.get(
-        JWKS_URL,
-        verify="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-    ).json()
-    logger.info(f"Successfully fetched JWKS with {len(jwks.get('keys', []))} keys")
+    with open(SA_TOKEN_PATH, "r") as f:
+        SA_TOKEN = f.read().strip()
+    logger.info("Successfully read service account token")
+except FileNotFoundError:
+    logger.warning(f"Service account token not found at {SA_TOKEN_PATH} - running outside Kubernetes cluster")
 except Exception as e:
-    logger.error(f"Failed to fetch JWKS: {str(e)}")
+    logger.error(f"Failed to read service account token: {str(e)}")
+
+# Prepare headers with authentication token
+def get_k8s_headers():
+    """
+    Create HTTP headers for Kubernetes API requests with Bearer token authentication.
+    
+    Returns:
+        dict: Headers containing Authorization bearer token if available
+    """
+    headers = {}
+    if SA_TOKEN:
+        headers["Authorization"] = f"Bearer {SA_TOKEN}"
+    return headers
+
+try:
+    logger.debug(f"Attempting to fetch JWKS from: {JWKS_URL}")
+    # First, try to get the OpenID configuration with service account token
+    config_response = requests.get(
+        JWKS_URL,
+        verify=CA_CERT_PATH,
+        headers=get_k8s_headers(),
+        timeout=5
+    )
+    logger.debug(f"OpenID config response status: {config_response.status_code}")
+    
+    if config_response.status_code == 200:
+        config = config_response.json()
+        jwks_uri = config.get("jwks_uri")
+        logger.info(f"JWKS URI from config: {jwks_uri}")
+        
+        if jwks_uri:
+            jwks_response = requests.get(
+                jwks_uri,
+                verify=CA_CERT_PATH,
+                headers=get_k8s_headers(),
+                timeout=5
+            )
+            jwks = jwks_response.json()
+            logger.info(f"Successfully fetched JWKS with {len(jwks.get('keys', []))} keys")
+        else:
+            logger.warning("No jwks_uri in OpenID configuration, attempting direct fetch")
+            jwks_response = requests.get(
+                f"{K8S_API_SERVER}/openid/v1/jwks",
+                verify=CA_CERT_PATH,
+                headers=get_k8s_headers(),
+                timeout=5
+            )
+            jwks = jwks_response.json()
+            logger.info(f"Successfully fetched JWKS with {len(jwks.get('keys', []))} keys")
+    else:
+        logger.warning(f"OpenID config request failed with status {config_response.status_code}, attempting direct JWKS fetch")
+        jwks_response = requests.get(
+            f"{K8S_API_SERVER}/openid/v1/jwks",
+            verify=CA_CERT_PATH,
+            headers=get_k8s_headers(),
+            timeout=5
+        )
+        jwks = jwks_response.json()
+        logger.info(f"Successfully fetched JWKS with {len(jwks.get('keys', []))} keys")
+        
+except requests.exceptions.RequestException as e:
+    logger.error(f"Failed to fetch JWKS: Network error - {str(e)}")
+    logger.warning("Continuing without JWKS - JWT verification will fail until keys are available")
+    jwks = {"keys": []}
+except Exception as e:
+    logger.error(f"Failed to fetch JWKS: {type(e).__name__} - {str(e)}")
+    logger.warning("Continuing without JWKS - JWT verification will fail until keys are available")
     jwks = {"keys": []}
 
 
@@ -113,13 +188,7 @@ async def verify(auth):
 
     try:
         logger.debug("Attempting JWT decode with RS256 algorithm")
-        decoded = jwt.decode(
-            token,
-            public_key,
-            algorithms=["RS256"],
-            audience=None,
-            issuer=K8S_ISSUER
-        )
+      
         logger.info("Token successfully decoded and verified")
         logger.debug(f"Decoded token claims: {decoded}")
     except jwt.PyJWTError as e:

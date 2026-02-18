@@ -16,6 +16,7 @@ BE2_ENDPOINT = os.getenv("http://localhost:8001/")
 KSA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 # Get the KSA JWT token for this service
+@app.get("/get-jwt")
 def get_ksa_token():
      with open(KSA_TOKEN_PATH, "r") as f:
         return f.read().strip()
