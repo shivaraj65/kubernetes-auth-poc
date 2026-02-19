@@ -3,8 +3,6 @@
 ## Overview
 This project demonstrates JWT token-based authentication between microservices running in Kubernetes using Service Account (KSA) tokens.
 
-## Architecture
-
 ### Services
 - **be**: FastAPI service that generates and returns JWT tokens from its Kubernetes Service Account
 - **be2**: FastAPI service that validates JWT tokens from other services
