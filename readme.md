@@ -37,3 +37,44 @@ This project demonstrates JWT token-based authentication between microservices r
 ## Environment
 - **Platform**: Docker Desktop Kubernetes
 - **Note**: Full Kubernetes setup optimization is not in scope; focus is on authentication flow
+
+
+## References used:
+- [Kubernetes Service Account JWT Authentication](https://psaggu.com/2025/12/19/k8s-serviceaccount-jwt.html)
+## Sample JWT Token
+
+### Encoded JWT
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6InRfM2lXUmxFMS01STFhYXhNbjlLbkQ5dEJFcDI5OXFRRG83aldpeTRzT0EifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxODAzMDE2NDU1LCJpYXQiOjE3NzE0ODA0NTUsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiZGQ1ZjFkNTEtNjUyNi00ODE4LWEwOWYtOGRhYWYwYWEwYzczIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwibm9kZSI6eyJuYW1lIjoiZGVza3RvcC13b3JrZXIiLCJ1aWQiOiIwZWY1YzZmZS0xODE5LTQ2YjMtOGY4Yy04YTU3ZjkyZTE5ZjkifSwicG9kIjp7Im5hbWUiOiJiZS02YzdiNjZmN2Q4LWc5dmw0IiwidWlkIjoiYzM5OWJiMDktODA3NC00NDgyLTljYTEtMDk2M2EzZmQyM2FkIn0sInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJkZWZhdWx0IiwidWlkIjoiNThiMjJlZmEtODc0Yy00OGIxLTkzN2YtMGY3MGY4ZTRlM2M5In0sIndhcm5hZnRlciI6MTc3MTQ4NDA2Mn0sIm5iZiI6MTc3MTQ4MDQ1NSwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.oQidELueCwm3sfjAWVrI92dO8sRy8noVIzbMJeTMGH7MLLVAV9HL3WGSHJlwhoiKUgPvLqbEGVzspVtOoQZjGwNIKbCCesXkev0DuIH7y5nQ7XPVOeUwLyIUr_ptMVqw_JZ1tcI-BPJGjb_Y8onf9q6_AVNRPOYOPFEYiXd1Z2pbaoZYQg21O7ezdvePWcvpifYOGFWsSVuCHd8wrGeiEgN3jWOwgfk4Hae6Bq084ttZgZ1E7nLTcOqN6w5sA1Nj031tt8-hmr1V_JkLTRul4cDjkmk9TjohBY45rxl9kpBE9tdJhLzhTxX3thw9r-mRxpTWtQTfFeTzgvz0qJTD0w
+```
+
+### Decoded Payload
+```json
+{
+    "aud": ["https://kubernetes.default.svc.cluster.local"],
+    "exp": 1803016455,
+    "iat": 1771480455,
+    "iss": "https://kubernetes.default.svc.cluster.local",
+    "jti": "dd5f1d51-6526-4818-a09f-8daaf0aa0c73",
+    "kubernetes.io": {
+        "namespace": "default",
+        "node": {
+            "name": "desktop-worker",
+            "uid": "0ef5c6fe-1819-46b3-8f8c-8a57f92e19f9"
+        },
+        "pod": {
+            "name": "be-6c7b66f7d8-g9vl4",
+            "uid": "c399bb09-8074-4482-9ca1-0963a3fd23ad"
+        },
+        "serviceaccount": {
+            "name": "default",
+            "uid": "58b22efa-874c-48b1-937f-0f70f8e4e3c9"
+        },
+        "warnafter": 1771484062
+    },
+    "nbf": 1771480455,
+    "sub": "system:serviceaccount:default:default"
+}
+```
+
+
