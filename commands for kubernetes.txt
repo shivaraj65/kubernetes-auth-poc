@@ -1,0 +1,32 @@
+commands for BE:
+
+kubectl create deployment be --image=be
+
+
+kubectl expose deployment be  --type=NodePort --port=8000 --target-port=8000  --name=be-svc
+
+kubectl port-forward svc/be-svc 8000:8000
+
+
+
+
+
+
+commands for BE2:
+
+
+
+kubectl create deployment be2 --image=be2
+
+
+kubectl expose deployment be2  --type=NodePort --port=8001 --target-port=8001  --name=be2-svc
+
+
+kubectl port-forward svc/be2-svc 8001:8001
+
+
+
+creating a service account:
+
+kubectl create serviceaccount a-sa
+kubectl edit deployment be

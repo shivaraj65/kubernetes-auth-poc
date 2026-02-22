@@ -25,6 +25,8 @@ JWKS_URL = f"{K8S_API_SERVER}/.well-known/openid-configuration"
 CA_CERT_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 SA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
+KSA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
 logger.info("Fetching cluster signing keys from Kubernetes JWKS endpoint (using env config)")
 
 # Read the service account token for authentication
@@ -77,6 +79,7 @@ except Exception as e:
     logger.error(f"Failed to fetch JWKS: {type(e).__name__} - {str(e)}")
     logger.warning("Continuing without JWKS - JWT verification will fail until keys are available")
     jwks = {"keys": []}
+
 
 
 def get_public_key(token):
@@ -141,6 +144,12 @@ async def verify(auth):
     #     raise HTTPException(403, "Unauthorized KSA")
 
     # logger.info(f"Authorization successful for KSA: {ksa_name} in namespace: {namespace}")
+
+# Get the KSA JWT token for this service
+@app.get("/get-jwt")
+def get_ksa_token():
+     with open(KSA_TOKEN_PATH, "r") as f:
+        return f.read().strip()
 
 @app.get("/validate-auth")
 async def validate_auth(request: Request):
